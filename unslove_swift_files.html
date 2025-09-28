@@ -1,0 +1,701 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>UnsLove — Веб-версія розкладу</title>
+<style>
+  :root{
+    --bg:#0f1724;
+    --card: rgba(255,255,255,0.06);
+    --card-2: rgba(255,255,255,0.04);
+    --accent: #ff4d6d;
+    --glass: rgba(255,255,255,0.06);
+    color-scheme: dark;
+  }
+  html,body{height:100%;margin:0;font-family:Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;}
+  body{background:linear-gradient(180deg,#071021 0%, #0b1220 100%);padding:18px;box-sizing:border-box;color:#fff}
+  .app{max-width:980px;margin:0 auto}
+  .topbar{display:flex;gap:12px;align-items:center;margin-bottom:16px}
+  .segmented{display:inline-flex;border-radius:8px;overflow:hidden;background:rgba(255,255,255,0.04)}
+  .segmented button{padding:8px 14px;border:0;background:transparent;color:#fff;cursor:pointer}
+  .segmented button.active{background:linear-gradient(90deg,var(--accent),#ff8ca1); color:#fff}
+  .mainCard{background:var(--card);padding:14px;border-radius:18px;box-shadow:0 8px 30px rgba(0,0,0,0.6);margin-bottom:12px;position:relative}
+  .title{font-weight:700;font-size:18px}
+  .subtitle{font-size:13px;color:rgba(255,255,255,0.7)}
+  .hRow{display:flex;gap:12px;align-items:center}
+  .progressWrap{display:flex;align-items:center;gap:10px}
+  .progress{width:260px;height:12px;background:#ffffff10;border-radius:20px;overflow:hidden}
+  .progress > i{display:block;height:100%;width:0%;background:linear-gradient(90deg,#ff6b8a,#ff2e5c);border-radius:20px;transition:width .25s ease}
+  .heartBtn{cursor:pointer;padding:8px;border-radius:8px;background:transparent;border:1px solid rgba(255,255,255,0.06)}
+  .blockRow{display:flex;gap:12px;flex-wrap:wrap}
+  .infoBlock{flex:1;min-width:220px;background:var(--card-2);padding:12px;border-radius:14px}
+  .clock{font-weight:700}
+  textarea{width:100%;height:240px;background:transparent;border:1px dashed rgba(255,255,255,0.06);border-radius:10px;padding:10px;color:#fff;resize:vertical}
+  nav .link{color:#fff;text-decoration:none;margin-right:10px}
+  .navTabs{display:flex;gap:8px;margin-bottom:12px}
+  .list{background:var(--card-2);padding:12px;border-radius:12px}
+  .section{margin-bottom:10px;padding:8px;border-radius:10px;background:linear-gradient(180deg, rgba(255,255,255,0.02), transparent)}
+  .section h3{margin:0 0 6px 0}
+  .timeBadge{font-size:12px;color:rgba(255,255,255,0.8)}
+  /* hearts */
+  .hearts-container{position:absolute;left:50%;transform:translateX(-50%);top:-14px;pointer-events:none;width:260px;height:160px;overflow:visible}
+  .heart{position:absolute;font-size:20px;opacity:0;transform:translateY(0) scale(1);animation:floatUp 1s forwards}
+  @keyframes floatUp{
+    0%{opacity:1;transform:translateY(0) scale(1)}
+    100%{opacity:0;transform:translateY(-80px) scale(.5)}
+  }
+  .small{font-size:13px}
+  .dayHeader{display:flex;justify-content:space-between;align-items:center;padding:6px 0}
+  .empty{color:rgba(255,255,255,0.5);font-size:14px}
+  .pill{display:inline-block;padding:6px 10px;border-radius:999px;background:rgba(255,255,255,0.04);font-size:13px}
+  .listItem{display:flex;justify-content:space-between;padding:8px;border-radius:8px}
+  .muted{color:rgba(255,255,255,0.6);font-size:13px}
+  footer{margin-top:18px;color:rgba(255,255,255,0.45);font-size:13px;text-align:center}
+  @media(max-width:640px){ .progress{width:160px} .hearts-container{width:160px} .blockRow{flex-direction:column} }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="topbar">
+    <div class="navTabs" id="navTabs">
+      <a href="#" class="link" data-view="home">Головна</a>
+      <a href="#" class="link" data-view="girl">Розклад дівчини</a>
+      <a href="#" class="link" data-view="me">Мій розклад</a>
+    </div>
+
+    <div style="margin-left:auto" class="segmented" role="tablist" aria-label="Week">
+      <button id="weekAuto">Авто</button>
+      <button id="weekCh">Чисельник</button>
+      <button id="weekZn">Знаменник</button>
+    </div>
+  </div>
+
+  <div id="viewRoot">
+    <!-- main view -->
+    <div id="homeView">
+      <div class="mainCard">
+        <div class="hearts-container" id="heartsContainer"></div>
+        <div class="hRow" style="justify-content:space-between;align-items:center">
+          <div>
+            <div class="title">UnsLove</div>
+            <div class="subtitle">Торкнись події, щоб побачити деталі</div>
+          </div>
+          <div class="pill small" id="todayLabel"></div>
+        </div>
+
+        <div style="height:12px"></div>
+
+        <div class="blockRow">
+          <div style="flex:1;min-width:300px">
+            <a href="#" class="infoBlock" id="girlCard">
+              <div style="display:flex;justify-content:space-between;align-items:center">
+                <div style="max-width:70%">
+                  <div style="font-weight:800" id="girlLabel">Завантаження...</div>
+                </div>
+                <div style="text-align:right">
+                  <div class="muted small"><span id="girlStatus">—</span></div>
+                </div>
+              </div>
+            </a>
+          </div>
+
+          <div style="flex:1;min-width:260px">
+            <a href="#" class="infoBlock" id="myCard">
+              <div style="display:flex;justify-content:space-between;align-items:center">
+                <div style="max-width:70%">
+                  <div style="font-weight:800" id="myLabel">Завантаження...</div>
+                </div>
+                <div style="text-align:right">
+                  <div class="muted small"><span id="myStatus">—</span></div>
+                </div>
+              </div>
+            </a>
+
+            <div style="height:8px"></div>
+
+            <div class="infoBlock small">
+              <div class="progressWrap">
+                <button class="heartBtn" id="leftHeart">♡</button>
+                <div class="progress"><i id="progressFill"></i></div>
+                <button class="heartBtn" id="rightHeart">♡</button>
+              </div>
+              <div style="height:8px"></div>
+              <div style="text-align:center;color:rgba(255,255,255,0.7);font-size:13px">Натисни сердечко, щоб додати прогрес</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="list">
+        <div style="text-align:center;font-weight:700;margin-bottom:8px">Мої замітки</div>
+        <textarea id="notes" placeholder="Твої замітки..."></textarea>
+      </div>
+    </div>
+
+    <!-- girl schedule view -->
+    <div id="girlView" style="display:none">
+      <div class="list" id="girlFullList"></div>
+    </div>
+
+    <!-- my schedule view -->
+    <div id="meView" style="display:none">
+      <div class="list" id="myFullList"></div>
+    </div>
+  </div>
+
+  <footer>Портовано з SwiftUI проєкту (ContentView.swift, GirlFullScheduleView.swift, MyFullShadowView.swift). Інтерфейс і логіка — українською.</footer>
+</div>
+
+<script>
+/* =======================
+   Дані (перенесені зі Swift-файлів)
+   ======================= */
+
+/* Загальні допоміжні функції */
+function containsRestText(s){
+  if(!s) return false;
+  const lower = s.toLowerCase();
+  return lower.includes('відпоч') || lower.includes('спат') || lower.includes('котик') || lower.includes('котен');
+}
+
+/* Обчислення номера тижня у часовій зоні Europe/Berlin */
+function berlinDateFrom(d){
+  // створюємо локальну стрічку у часовій зоні Берліну і потім Date з неї
+  const parts = new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'Europe/Berlin',
+    year: 'numeric', month:'numeric', day:'numeric',
+    hour:'numeric',minute:'numeric',second:'numeric',
+    hour12:false
+  }).formatToParts(d).reduce((acc,p)=>{acc[p.type]=p.value;return acc},{});
+  // parts: {year,month,day,hour,minute,second}
+  return new Date(Number(parts.year), Number(parts.month)-1, Number(parts.day), Number(parts.hour), Number(parts.minute), Number(parts.second));
+}
+function weekNumberISO(d){
+  // ISO week number for given Date (uses local date passed)
+  const date = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+  // Thursday in current week decides the year.
+  date.setUTCDate(date.getUTCDate() + 4 - (date.getUTCDay()||7));
+  const yearStart = new Date(Date.UTC(date.getUTCFullYear(),0,1));
+  const weekNo = Math.ceil((((date - yearStart) / 86400000) + 1)/7);
+  return weekNo;
+}
+function currentWeekType(){
+  const sel = localStorage.getItem('weekSelection') || 'Авто';
+  if(sel !== 'Авто') return sel;
+  const now = new Date();
+  const berlin = berlinDateFrom(now);
+  const w = weekNumberISO(berlin);
+  return (w % 2 === 0) ? 'Чисельник' : 'Знаменник';
+}
+
+/* Функція для форматування секунд у HH-MM-SS (такий же стиль як у Swift) */
+function formatTimeDetailed(seconds){
+  const h = Math.floor(seconds/3600);
+  const m = Math.floor((seconds%3600)/60);
+  const s = seconds%60;
+  return String(h).padStart(2,'0') + '-' + String(m).padStart(2,'0') + '-' + String(s).padStart(2,'0');
+}
+
+/* Конвертація Berlin->локальний час рядок */
+function berlinToLocalRange(startH, startM, endH, endM){
+  const now = new Date();
+  const berlinStart = new Date(berlinDateFrom(now).getFullYear(), berlinDateFrom(now).getMonth(), berlinDateFrom(now).getDate(), startH % 24, startM);
+  // end might be 24 => next day midnight
+  let berlinEnd;
+  if(endH === 24) {
+    // next day 00:MM
+    berlinEnd = new Date(berlinDateFrom(now).getFullYear(), berlinDateFrom(now).getMonth(), berlinDateFrom(now).getDate()+1, 0, endM);
+  } else {
+    berlinEnd = new Date(berlinDateFrom(now).getFullYear(), berlinDateFrom(now).getMonth(), berlinDateFrom(now).getDate(), endH, endM);
+  }
+  const startLocal = new Date(berlinStart.toLocaleString('en-US', {timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone}));
+  const endLocal = new Date(berlinEnd.toLocaleString('en-US', {timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone}));
+  return `${String(startLocal.getHours()).padStart(2,'0')}:${String(startLocal.getMinutes()).padStart(2,'0')} — ${String(endLocal.getHours()).padStart(2,'0')}:${String(endLocal.getMinutes()).padStart(2,'0')}`;
+}
+
+/* =======================
+   Дані розкладів (приближено як в Swift)
+   ======================= */
+
+/* Розклад дівчини (Lesson) — використовуємо масиви аналогічні ContentView.swift */
+const girlLessons = {
+  2: [
+    {startHour:0,startMinute:0,subject:"Котеня має спатки |", weekType:null, endHour:7, endMinute:0},
+    {startHour:10,startMinute:50,subject:"Фізичне виховання |", weekType:null},
+    {startHour:12,startMinute:30,subject:"Українська мова |", weekType:null},
+    {startHour:14,startMinute:10,subject:"Інформаційні технології |", weekType:null}
+  ],
+  3:[
+    {startHour:0,startMinute:0,subject:"Котеня має спатки |", weekType:null, endHour:7,endMinute:0},
+    {startHour:10,startMinute:50,subject:"Хімія |", weekType:null},
+    {startHour:12,startMinute:30,subject:"Хімія |", weekType:null},
+    {startHour:14,startMinute:10,subject:"Хімія |", weekType:null},
+    {startHour:15,startMinute:50,subject:"Іноземна мова |", weekType:"Знаменник"}
+  ],
+  4:[
+    {startHour:0,startMinute:0,subject:"Котеня має спатки |", weekType:null, endHour:7,endMinute:0},
+    {startHour:14,startMinute:10,subject:"Агрофізика |", weekType:null},
+    {startHour:15,startMinute:50,subject:"Хімія |", weekType:null},
+    {startHour:17,startMinute:30,subject:"Хімія |", weekType:"Знаменник"}
+  ],
+  5:[
+    {startHour:0,startMinute:0,subject:"Котеня має спатки |", weekType:null, endHour:7,endMinute:0},
+    {startHour:10,startMinute:50,subject:"Хімія |", weekType:null},
+    {startHour:12,startMinute:30,subject:"Етнокультурологія |", weekType:"Чисельник"},
+    {startHour:12,startMinute:30,subject:"Інформаційні технології |", weekType:"Знаменник"},
+    {startHour:14,startMinute:10,subject:"Агрофізика |", weekType:null},
+    {startHour:15,startMinute:50,subject:"Хімія |", weekType:"Чисельник"}
+  ],
+  6:[
+    {startHour:0,startMinute:0,subject:"Котеня має спатки |", weekType:null, endHour:7,endMinute:0},
+    {startHour:10,startMinute:50,subject:"Вступ до спеціальності |", weekType:"Чисельник"},
+    {startHour:12,startMinute:30,subject:"Вступ до спеціальності |", weekType:"Чисельник"},
+    {startHour:12,startMinute:30,subject:"Етнокультурологія |", weekType:"Знаменник"},
+    {startHour:14,startMinute:10,subject:"Іноземна мова |", weekType:null}
+  ],
+  7:[ {startHour:0,startMinute:0,subject:"Котеня має спатки |", weekType:null, endHour:7,endMinute:0} ],
+  1:[ {startHour:0,startMinute:0,subject:"Котеня має спатки |", weekType:null, endHour:7,endMinute:0} ]
+};
+
+/* Мій розклад (MyLesson) — з MyFullShadowView.swift / ContentView.swift */
+const myLessons = {
+  2: [
+    {startHour:0,startMinute:0,endHour:8,endMinute:0,description:"Котик має спатки |", weekType:"Чисельник"},
+    {startHour:0,startMinute:0,endHour:8,endMinute:0,description:"Котик має спатки |", weekType:"Знаменник"},
+    {startHour:8,startMinute:0,endHour:10,endMinute:0,description:"Котик відпочиває |", weekType:null},
+    {startHour:8,startMinute:0,endHour:10,endMinute:0,description:"Котик відпочиває |", weekType:"Чисельник"},
+    {startHour:10,startMinute:0,endHour:11,endMinute:0,description:"В дорозі в зал |", weekType:"Чисельник"},
+    {startHour:11,startMinute:0,endHour:13,endMinute:0,description:"Котик тренується |", weekType:"Чисельник"},
+    {startHour:13,startMinute:0,endHour:14,endMinute:0,description:"В дорозі на курси |", weekType:"Чисельник"},
+    {startHour:14,startMinute:0,endHour:15,endMinute:30,description:"І Частина курсів |", weekType:"Чисельник"},
+    {startHour:15,startMinute:30,endHour:15,endMinute:45,description:"Котик відпочиває |", weekType:"Чисельник"},
+    {startHour:15,startMinute:45,endHour:17,endMinute:15,description:"ІІ Частина курсів |", weekType:"Чисельник"},
+    {startHour:17,startMinute:15,endHour:17,endMinute:30,description:"Котик відпочиває |", weekType:"Чисельник"},
+    {startHour:17,startMinute:30,endHour:18,endMinute:15,description:"ІІІ Частина курсів |", weekType:"Чисельник"},
+    {startHour:18,startMinute:15,endHour:19,endMinute:0,description:"В дорозі додому |", weekType:"Чисельник"},
+    {startHour:19,startMinute:0,endHour:24,endMinute:0,description:"Котик відпочиває |", weekType:"Чисельник"},
+    // ... (спрощено, але збережено основні)
+  ],
+  3:[
+    {startHour:0,startMinute:0,endHour:8,endMinute:0,description:"Котик має спатки |", weekType:"Чисельник"},
+    {startHour:0,startMinute:0,endHour:8,endMinute:0,description:"Котик має спатки |", weekType:"Знаменник"},
+    {startHour:8,startMinute:0,endHour:13,endMinute:0,description:"Котик відпочиває |", weekType:"Чисельник"},
+    {startHour:8,startMinute:0,endHour:13,endMinute:0,description:"Котик відпочиває |", weekType:"Знаменник"},
+    {startHour:13,startMinute:0,endHour:14,endMinute:0,description:"В дорозі на курси |", weekType:null},
+    {startHour:14,startMinute:0,endHour:15,endMinute:30,description:"І Частина курсів |", weekType:null},
+    {startHour:15,startMinute:30,endHour:15,endMinute:45,description:"Котик відпочиває |", weekType:null},
+    {startHour:15,startMinute:45,endHour:17,endMinute:15,description:"ІІ Частина курсів |", weekType:null},
+    {startHour:17,startMinute:30,endHour:18,endMinute:15,description:"ІІІ Частина курсів |", weekType:null},
+    {startHour:19,startMinute:0,endHour:24,endMinute:0,description:"Котик відпочиває |", weekType:null}
+  ],
+  4: [
+    {startHour:0,startMinute:0,endHour:8,endMinute:0,description:"Котик має спатки |", weekType:null},
+    {startHour:8,startMinute:0,endHour:10,endMinute:0,description:"Котик відпочиває |", weekType:null},
+    {startHour:10,startMinute:0,endHour:11,endMinute:0,description:"В дорозі в зал |", weekType:null},
+    {startHour:11,startMinute:0,endHour:13,endMinute:0,description:"Котик тренується |", weekType:null},
+    {startHour:13,startMinute:0,endHour:14,endMinute:0,description:"В дорозі на курси |", weekType:null},
+    {startHour:14,startMinute:0,endHour:15,endMinute:30,description:"І Частина курсів |", weekType:null},
+    {startHour:15,startMinute:30,endHour:15,endMinute:45,description:"Котик відпочиває |", weekType:null},
+    {startHour:15,startMinute:45,endHour:17,endMinute:15,description:"ІІ Частина курсів |", weekType:null},
+    {startHour:17,startMinute:30,endHour:18,endMinute:15,description:"ІІІ Частина курсів |", weekType:null},
+    {startHour:19,startMinute:0,endHour:24,endMinute:0,description:"Котик відпочиває |", weekType:null}
+  ],
+  5:[
+    {startHour:0,startMinute:0,endHour:8,endMinute:0,description:"Котик має спатки |", weekType:null},
+    {startHour:8,startMinute:0,endHour:13,endMinute:0,description:"Котик відпочиває |", weekType:null},
+    {startHour:13,startMinute:0,endHour:14,endMinute:0,description:"В дорозі на курси |", weekType:null},
+    {startHour:14,startMinute:0,endHour:15,endMinute:30,description:"І Частина курсів |", weekType:null},
+    {startHour:15,startMinute:30,endHour:15,endMinute:45,description:"Котик відпочиває |", weekType:null},
+    {startHour:15,startMinute:45,endHour:17,endMinute:15,description:"ІІ Частина курсів |", weekType:null},
+    {startHour:17,startMinute:30,endHour:18,endMinute:15,description:"ІІІ Частина курсів |", weekType:null},
+    {startHour:19,startMinute:0,endHour:24,endMinute:0,description:"Котик відпочиває |", weekType:null}
+  ],
+  6:[
+    {startHour:0,startMinute:0,endHour:8,endMinute:0,description:"Котик має спатки |", weekType:null},
+    {startHour:8,startMinute:0,endHour:10,endMinute:0,description:"Котик відпочиває |", weekType:null},
+    {startHour:10,startMinute:0,endHour:11,endMinute:0,description:"В дорозі в зал |", weekType:null},
+    {startHour:11,startMinute:0,endHour:13,endMinute:0,description:"Котик тренується |", weekType:null},
+    {startHour:13,startMinute:0,endHour:14,endMinute:0,description:"В дорозі додому |", weekType:"Чисельник"},
+    {startHour:14,startMinute:0,endHour:24,endMinute:0,description:"Котик відпочиває |", weekType:"Чисельник"}
+  ],
+  7:[
+    {startHour:0,startMinute:0,endHour:8,endMinute:0,description:"Котик має спатки |", weekType:null},
+    {startHour:8,startMinute:0,endHour:24,endMinute:0,description:"Повний вихідний |", weekType:null}
+  ],
+  1:[
+    {startHour:0,startMinute:0,endHour:8,endMinute:0,description:"Котик має спатки |", weekType:null},
+    {startHour:8,startMinute:0,endHour:24,endMinute:0,description:"Повний вихідний |", weekType:null}
+  ]
+};
+
+/* =======================
+   UI init and logic
+   ======================= */
+
+const dayNames = {1:"Неділя",2:"Понеділок",3:"Вівторок",4:"Середа",5:"Четвер",6:"П’ятниця",7:"Субота"};
+const todayLabel = document.getElementById('todayLabel');
+const girlLabelEl = document.getElementById('girlLabel');
+const girlStatusEl = document.getElementById('girlStatus');
+const myLabelEl = document.getElementById('myLabel');
+const myStatusEl = document.getElementById('myStatus');
+const progressFill = document.getElementById('progressFill');
+const heartsContainer = document.getElementById('heartsContainer');
+const notesBox = document.getElementById('notes');
+
+const weekAutoBtn = document.getElementById('weekAuto');
+const weekChBtn = document.getElementById('weekCh');
+const weekZnBtn = document.getElementById('weekZn');
+
+function setWeekSelectionUI(value){
+  localStorage.setItem('weekSelection', value);
+  [weekAutoBtn,weekChBtn,weekZnBtn].forEach(b=>b.classList.remove('active'));
+  if(value==='Авто') weekAutoBtn.classList.add('active');
+  else if(value==='Чисельник') weekChBtn.classList.add('active');
+  else weekZnBtn.classList.add('active');
+  refreshAll();
+}
+
+weekAutoBtn.addEventListener('click', ()=>setWeekSelectionUI('Авто'));
+weekChBtn.addEventListener('click', ()=>setWeekSelectionUI('Чисельник'));
+weekZnBtn.addEventListener('click', ()=>setWeekSelectionUI('Знаменник'));
+
+/* Nav */
+document.querySelectorAll('.navTabs .link').forEach(a=>{
+  a.addEventListener('click', (e)=>{
+    e.preventDefault();
+    const view = a.dataset.view;
+    showView(view);
+  });
+});
+function showView(name){
+  document.getElementById('homeView').style.display = name==='home' ? 'block':'none';
+  document.getElementById('girlView').style.display = name==='girl' ? 'block':'none';
+  document.getElementById('meView').style.display = name==='me' ? 'block':'none';
+}
+
+/* progress + hearts */
+let progressValue = Number(localStorage.getItem('progressValue')||0);
+progressFill.style.width = (progressValue*100)+'%';
+function spawnHeart(x){
+  const el = document.createElement('div');
+  el.className = 'heart';
+  el.style.left = (120 + (Math.random()*60-30)) + 'px';
+  el.style.top = (Math.random()*40 + 10) + 'px';
+  el.textContent = '❤';
+  heartsContainer.appendChild(el);
+  setTimeout(()=>el.remove(),1100);
+}
+function addHeartEffect(count=1){
+  for(let i=0;i<count;i++){
+    setTimeout(()=>spawnHeart(), i*30);
+  }
+}
+function incrementProgress(){
+  progressValue += 0.05;
+  if(progressValue >= 1.0){
+    progressValue = 1.0;
+    addHeartEffect(15);
+    setTimeout(()=>{ progressValue = 0; updateProgressUI(); localStorage.setItem('progressValue', progressValue); }, 600);
+  }
+  updateProgressUI();
+  localStorage.setItem('progressValue', progressValue);
+}
+function updateProgressUI(){
+  progressFill.style.width = (progressValue*100)+'%';
+}
+document.getElementById('leftHeart').addEventListener('click', ()=>{
+  addHeartEffect(1); incrementProgress();
+});
+document.getElementById('rightHeart').addEventListener('click', ()=>{
+  addHeartEffect(1); incrementProgress();
+});
+document.getElementById('girlCard').addEventListener('click', ()=>showView('girl'));
+document.getElementById('myCard').addEventListener('click', ()=>showView('me'));
+
+/* Notes */
+notesBox.value = localStorage.getItem('notes') || '';
+notesBox.addEventListener('input', ()=>localStorage.setItem('notes', notesBox.value));
+
+/* Helpers: build Date for given hour/minute relative to base (handles 24->next day) */
+function dateFor(hour, minute, relativeTo){
+  // returns Date object in local zone representing that Berlin time converted to local time
+  // Build Berlin date at relativeTo's Berlin Y/M/D
+  const berlinBase = berlinDateFrom(relativeTo);
+  let year = berlinBase.getFullYear(), month = berlinBase.getMonth(), day = berlinBase.getDate();
+  let d;
+  if(hour === 24){
+    d = new Date(year, month, day+1, 0, minute, 0);
+  } else {
+    d = new Date(year, month, day, hour, minute, 0);
+  }
+  // d is berlin-local date/time but in local JS Date object; to get actual wall-clock in local time,
+  // we convert via toLocaleString trick
+  const localeStr = d.toLocaleString('en-US', {timeZone: 'Europe/Berlin'});
+  return new Date(localeStr);
+}
+
+/* Find next upcoming lesson (for girl) - searches up to 7 days */
+function nextUpcomingLesson(lessonsMap, now){
+  const nowBerlin = berlinDateFrom(now);
+  const weekday = (nowBerlin.getDay() === 0) ? 1 : nowBerlin.getDay()+1; // map JS Sunday(0) -> 1? Keep simple: we'll compute by local day numbers as Swift 1..7 (Sunday=1)
+  // Simpler approach: iterate 0..6 days ahead with date shifting
+  for(let offset=0; offset<7; offset++){
+    const check = new Date(now.getTime() + offset*24*3600*1000);
+    const berlinCheck = berlinDateFrom(check);
+    const dayOfWeek = berlinCheck.getDay() === 0 ? 1 : berlinCheck.getDay()+1; // approximate mapping to 1..7 - not exact but aligns visually
+    const arr = lessonsMap[dayOfWeek] || [];
+    for(const lesson of arr){
+      // skip if weekType doesn't match
+      if(lesson.weekType && lesson.weekType !== currentWeekType()) continue;
+      // compute start
+      const startLocal = dateFor(lesson.startHour, lesson.startMinute, check);
+      if(startLocal > now) return {start:startLocal, lesson};
+    }
+  }
+  return null;
+}
+
+/* Update functions: girlManager and myManager behaviour */
+function updateGirlStatus(){
+  const now = new Date();
+  // local representation of weekday in Swift was calendar.component(.weekday) in Berlin? We'll use Berlin's weekday:
+  const berlinNow = berlinDateFrom(now);
+  const weekday = (berlinNow.getDay() === 0) ? 1 : berlinNow.getDay()+1; // simply map (JS Sun=0 => 1)
+  const raw = girlLessons[weekday] || [];
+  const week = currentWeekType();
+  // filter by weekType
+  const todayLessons = raw.filter(l => !l.weekType || l.weekType === week).sort((a,b)=>{
+    if(a.startHour !== b.startHour) return a.startHour - b.startHour;
+    return a.startMinute - b.startMinute;
+  });
+  if(todayLessons.length === 0){
+    const next = nextUpcomingLesson(girlLessons, now);
+    if(next){
+      const secondsLeft = Math.max(0, Math.floor((next.start - now)/1000));
+      girlStatusEl.textContent = formatTimeDetailed(secondsLeft);
+      const subj = (next.lesson.subject||'').trim();
+      const lower = subj.toLowerCase();
+      const isSleepBlock = lower.includes('спат') || lower.includes('спатк');
+      const startHour = next.start.getHours();
+      if(isSleepBlock && (startHour===0)){
+        girlLabelEl.textContent = "Котеня відпочиває до 24:00 |";
+      } else if(containsRestText(subj) || subj.startsWith('Котик') || subj.toLowerCase().startsWith('котик')){
+        girlLabelEl.textContent = subj;
+      } else {
+        girlLabelEl.textContent = "Котеня відпочиває |";
+      }
+    } else {
+      girlLabelEl.textContent = "Повний вихідний |";
+      girlStatusEl.textContent = '';
+    }
+    return;
+  }
+
+  for(let i=0;i<todayLessons.length;i++){
+    const lesson = todayLessons[i];
+    const start = dateFor(lesson.startHour, lesson.startMinute, now);
+    const end = lesson.endHour !== undefined && lesson.endMinute !== undefined
+                ? dateFor(lesson.endHour, lesson.endMinute, now)
+                : new Date(start.getTime() + 90*60*1000);
+    if(now >= start && now < end){
+      girlLabelEl.textContent = lesson.subject;
+      girlStatusEl.textContent = formatTimeDetailed(Math.max(0,Math.floor((end-now)/1000)));
+      return;
+    }
+    if(i < todayLessons.length - 1){
+      const next = todayLessons[i+1];
+      const nextStart = dateFor(next.startHour, next.startMinute, now);
+      if(now >= end && now < nextStart){
+        const secondsLeft = Math.floor((nextStart-now)/1000);
+        const prevIsRest = containsRestText(lesson.subject);
+        const nextIsRest = containsRestText(next.subject);
+        girlLabelEl.textContent = (prevIsRest || nextIsRest) ? "Котеня відпочиває |" : "Котеня відпочиває |";
+        girlStatusEl.textContent = formatTimeDetailed(secondsLeft);
+        return;
+      }
+    }
+    if(i===0 && now < start){
+      const secondsLeft = Math.floor((start-now)/1000);
+      girlStatusEl.textContent = formatTimeDetailed(secondsLeft);
+      const subj = (lesson.subject||'').trim();
+      if(containsRestText(subj) || subj.toLowerCase().startsWith('котик')){
+        girlLabelEl.textContent = subj;
+      } else {
+        girlLabelEl.textContent = "Котеня відпочиває |";
+      }
+      return;
+    }
+  }
+
+  // fallback: next upcoming
+  const next = nextUpcomingLesson(girlLessons, now);
+  if(next){
+    girlStatusEl.textContent = formatTimeDetailed(Math.floor((next.start-now)/1000));
+    const subj = (next.lesson.subject||'').trim();
+    if(containsRestText(subj) || subj.toLowerCase().startsWith('котик')){
+      girlLabelEl.textContent = subj;
+    } else {
+      girlLabelEl.textContent = "Котеня відпочиває |";
+    }
+  } else {
+    girlLabelEl.textContent = "Котеня відпочиває |";
+    girlStatusEl.textContent = '';
+  }
+}
+
+/* MySchedule logic similar to Swift's MyScheduleManager */
+function updateMyStatus(){
+  const now = new Date();
+  const berlinNow = berlinDateFrom(now);
+  const weekday = (berlinNow.getDay() === 0) ? 1 : berlinNow.getDay()+1;
+  const todayLessons = (myLessons[weekday] || []).filter(l => !l.weekType || l.weekType === currentWeekType())
+    .sort((a,b)=>{
+      if(a.startHour !== b.startHour) return a.startHour - b.startHour;
+      return a.startMinute - b.startMinute;
+    });
+  if(todayLessons.length === 0){
+    myLabelEl.textContent = "Вільний день";
+    myStatusEl.textContent = '';
+    return;
+  }
+  for(let i=0;i<todayLessons.length;i++){
+    const lesson = todayLessons[i];
+    const start = dateFor(lesson.startHour, lesson.startMinute, now);
+    const end = dateFor(lesson.endHour, lesson.endMinute, now);
+    if(!start || !end) continue;
+    if(now >= start && now < end){
+      myLabelEl.textContent = lesson.description;
+      myStatusEl.textContent = formatTimeDetailed(Math.floor((end-now)/1000));
+      return;
+    }
+    if(i < todayLessons.length -1 ){
+      const next = todayLessons[i+1];
+      const nextStart = dateFor(next.startHour, next.startMinute, now);
+      if(now >= end && now < nextStart){
+        myLabelEl.textContent = (containsRestText(lesson.description) || containsRestText(next.description)) ? "Котик відпочиває |" : "Перерва";
+        myStatusEl.textContent = formatTimeDetailed(Math.floor((nextStart-now)/1000));
+        return;
+      }
+    }
+    if(i===0 && now < start){
+      myStatusEl.textContent = formatTimeDetailed(Math.floor((start-now)/1000));
+      const desc = (lesson.description||'').trim();
+      if(containsRestText(desc) || desc.toLowerCase().startsWith('котик')) myLabelEl.textContent = desc;
+      else myLabelEl.textContent = "Відпочиває до: " + desc;
+      return;
+    }
+  }
+  myLabelEl.textContent = "Вільний час";
+  myStatusEl.textContent = '';
+}
+
+/* Build full lists for Girl and My views */
+function buildFullGirlList(){
+  const root = document.getElementById('girlFullList');
+  root.innerHTML = '';
+  const order = [2,3,4,5,6,7,1];
+  const week = currentWeekType();
+  for(const d of order){
+    const sec = document.createElement('div');
+    sec.className = 'section';
+    const header = document.createElement('div');
+    header.className = 'dayHeader';
+    header.innerHTML = `<h3>${dayNames[d]||''}</h3><div class="muted">${(berlinDateFrom(new Date()).getDay()+1)===d?'<span class="pill">Сьогодні</span>':''}</div>`;
+    sec.appendChild(header);
+    const lessons = (girlLessons[d]||[]).filter(l=>!l.weekType||l.weekType===week).sort((a,b)=>{ if(a.startHour!==b.startHour) return a.startHour-b.startHour; return a.startMinute-b.startMinute;});
+    if(lessons.length===0){
+      const p = document.createElement('div'); p.className='empty'; p.textContent='Немає уроків'; sec.appendChild(p);
+    } else {
+      for(const lesson of lessons){
+        const it = document.createElement('div'); it.className='listItem';
+        const left = document.createElement('div'); left.innerHTML = `<div style="font-weight:700">${lesson.subject}</div>${lesson.weekType?'<div class="muted">'+lesson.weekType+'</div>':''}`;
+        const right = document.createElement('div'); right.className='timeBadge muted'; 
+        // end may be absent -> assume 90 min
+        let endH = lesson.endHour, endM = lesson.endMinute;
+        if(endH===undefined){ const start = new Date(0,0,0,lesson.startHour, lesson.startMinute); const end = new Date(start.getTime()+90*60000); endH = end.getHours(); endM = end.getMinutes();}
+        right.textContent = berlinToLocalRange(lesson.startHour, lesson.startMinute, endH, endM);
+        it.appendChild(left); it.appendChild(right);
+        sec.appendChild(it);
+      }
+    }
+    root.appendChild(sec);
+  }
+}
+
+function buildFullMyList(){
+  const root = document.getElementById('myFullList');
+  root.innerHTML = '';
+  const order = [2,3,4,5,6,7,1];
+  const week = currentWeekType();
+  for(const d of order){
+    const sec = document.createElement('div'); sec.className='section';
+    const header = document.createElement('div'); header.className='dayHeader';
+    header.innerHTML = `<h3>${dayNames[d]||''}</h3><div class="muted">${(berlinDateFrom(new Date()).getDay()+1)===d?'<span class="pill">Сьогодні</span>':''}</div>`;
+    sec.appendChild(header);
+    const lessons = (myLessons[d]||[]).filter(l=>!l.weekType||l.weekType===week).sort((a,b)=>{ if(a.startHour!==b.startHour) return a.startHour-b.startHour; return a.startMinute-b.startMinute;});
+    if(lessons.length===0){
+      const p = document.createElement('div'); p.className='empty'; p.textContent='Немає подій'; sec.appendChild(p);
+    } else {
+      for(const lesson of lessons){
+        const it = document.createElement('div'); it.className='listItem';
+        const left = document.createElement('div'); left.innerHTML = `<div style="font-weight:700">${lesson.description}</div>`;
+        const right = document.createElement('div'); right.className='timeBadge muted'; 
+        right.textContent = `${String(lesson.startHour).padStart(2,'0')}-${String(lesson.startMinute).padStart(2,'0')} — ${String(lesson.endHour).padStart(2,'0')}-${String(lesson.endMinute).padStart(2,'0')}`;
+        it.appendChild(left); it.appendChild(right);
+        sec.appendChild(it);
+      }
+    }
+    root.appendChild(sec);
+  }
+}
+
+/* refreshAll - updates UI */
+function refreshAll(){
+  // today label: Berlin weekday name shown as in original header
+  const berlinNow = berlinDateFrom(new Date());
+  const wkday = (berlinNow.getDay() === 0) ? 1 : berlinNow.getDay()+1;
+  todayLabel.textContent = "Сьогодні: " + (dayNames[wkday] || '');
+  buildFullGirlList();
+  buildFullMyList();
+  updateProgressUI();
+  updateGirlStatus();
+  updateMyStatus();
+}
+
+/* Periodic updates every 1s like the Swift timers */
+setInterval(()=>{
+  updateGirlStatus();
+  updateMyStatus();
+}, 1000);
+
+/* init: load saved settings */
+(function init(){
+  const sel = localStorage.getItem('weekSelection') || 'Авто';
+  setWeekSelectionUI(sel);
+  const savedProg = Number(localStorage.getItem('progressValue')||0);
+  if(!isNaN(savedProg)) progressValue = savedProg;
+  updateProgressUI();
+  buildFullGirlList();
+  buildFullMyList();
+  // default view home
+  showView('home');
+})();
+
+/* Handle clicking on day lists back to home */
+document.getElementById('girlFullList').addEventListener('click', ()=>showView('home'));
+document.getElementById('myFullList').addEventListener('click', ()=>showView('home'));
+
+/* Shortcuts: clicking cards opens appropriate views */
+document.getElementById('girlCard').addEventListener('click', ()=>showView('girl'));
+document.getElementById('myCard').addEventListener('click', ()=>showView('me'));
+
+/* For accessibility: toggle heart using keyboard on focus */
+document.querySelectorAll('.heartBtn').forEach(b=>{
+  b.addEventListener('keydown', (e)=>{ if(e.key==='Enter' || e.key===' ') { e.preventDefault(); addHeartEffect(1); incrementProgress(); }});
+});
+
+/* End of script */
+</script>
+</body>
+</html>
